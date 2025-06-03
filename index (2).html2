@@ -780,22 +780,17 @@
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 4px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            gap: 5px;
         }
 
         .location-button:hover {
             background: #45a049;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
 
         .location-button svg {
@@ -805,50 +800,11 @@
 
         .location-button.active {
             background: #2E7D32;
-            animation: pulse 2s infinite;
         }
 
         .location-button.loading {
             background: #666;
             cursor: wait;
-        }
-
-        .location-button.loading svg {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Estilo para o indicador de localização */
-        .location-marker {
-            width: 20px;
-            height: 20px;
-            background: #4CAF50;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
-            animation: locationPulse 2s infinite;
-        }
-
-        @keyframes locationPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        /* Estilo para o círculo de precisão */
-        .accuracy-circle {
-            border: 2px solid rgba(76, 175, 80, 0.5);
-            background: rgba(76, 175, 80, 0.1);
         }
         </style>
         <title>Índices de Vegetação</title>
@@ -866,7 +822,6 @@
                 <circle cx="12" cy="12" r="10"></circle>
                 <circle cx="12" cy="12" r="4"></circle>
             </svg>
-            Localizar-me
         </button>
         <div class="main-container">
             <!-- Sidebar para a legenda -->
@@ -926,47 +881,233 @@
                 </div>
             </div>
         </div>
-
-        <!-- Scripts simulados para funcionalidade de demonstração -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/7.5.2/ol.min.js"></script>
+        <!-- Scripts essenciais primeiro -->
+        <script src="resources/proj4.js"></script>
+        <script src="./resources/ol.js"></script>
+        <script src="./resources/ol-layerswitcher.js"></script>
+        <script src="./resources/Autolinker.min.js"></script>
         
+        <!-- Scripts de configuração -->
+        <script src="resources/qgis2web_expressions.js"></script>
+        <script>proj4.defs('EPSG:31981','+proj=utm +zone=21 +south +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');</script>
+        
+        <!-- Camada do imóvel (deve ser carregada primeiro) -->
+        <script src="layers/IMOVELPRIMAVERAUTM_19.js"></script>
+        <script src="styles/IMOVELPRIMAVERAUTM_19_style.js"></script>
+        
+        <!-- Camadas e funcionalidades -->
+        <script src="layers/layers.js"></script>
+        <script src="./resources/functions.js"></script>
+        <script src="./resources/qgis2web.js"></script>
+
         <script>
-        // Simulação básica do mapa para demonstração
-        let map;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializa o Calendário 1 (original)
+            initInterface(map);
+        });
+        </script>
+
+        <script>
+        // Adicionar funcionalidade de toggle do menu
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Fechar o menu ao clicar fora dele em dispositivos móveis
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !menuToggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Funcionalidade de geolocalização
         let locationFeature = null;
         let locationSource = null;
         let locationLayer = null;
-        let watchId = null;
 
-        // Inicializar o mapa
-        function initMap() {
-            // Criar o mapa com OpenLayers
-            map = new ol.Map({
-                target: 'map',
-                layers: [
-                    new ol.layer.Tile({
-                        source: new ol.source.OSM()
+        function initLocationFeature() {
+            // Criar fonte e camada para a localização
+            locationSource = new ol.source.Vector();
+            locationLayer = new ol.layer.Vector({
+                source: locationSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 8,
+                        fill: new ol.style.Fill({
+                            color: 'rgba(76, 175, 80, 0.7)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: '#fff',
+                            width: 2
+                        })
                     })
-                ],
-                view: new ol.View({
-                    center: ol.proj.fromLonLat([-46.6333, -23.5505]), // São Paulo
-                    zoom: 10
                 })
             });
 
-            // Inicializar a funcionalidade de geolocalização
-            initLocationFeature();
+            // Adicionar a camada ao mapa
+            map.addLayer(locationLayer);
         }
 
-        // Inicializar a camada de localização
-        function initLocationFeature() {
-            console.log('Inicializando camada de localização...');
+        function updateLocation(position) {
+            console.log('Posição recebida:', position); // Debug
+
+            const coords = ol.proj.fromLonLat([
+                position.coords.longitude,
+                position.coords.latitude
+            ]);
+
+            console.log('Coordenadas convertidas:', coords); // Debug
             
-            // Criar fonte e camada para a localização
-            locationSource = new ol.source.Vector();
+            // Remover feature anterior se existir
+            if (locationFeature) {
+                locationSource.removeFeature(locationFeature);
+            }
+
+            // Criar nova feature com a localização atual
+            locationFeature = new ol.Feature({
+                geometry: new ol.geom.Point(coords)
+            });
+
+            locationSource.addFeature(locationFeature);
+
+            // Centralizar o mapa na localização
+            const view = map.getView();
+            view.animate({
+                center: coords,
+                zoom: 15,
+                duration: 1000
+            });
+
+            // Atualizar estado do botão
+            const locationButton = document.getElementById('locationButton');
+            locationButton.classList.remove('loading');
+            locationButton.classList.add('active');
+
+            // Adicionar círculo de precisão
+            const accuracy = position.coords.accuracy;
+            const accuracyFeature = new ol.Feature({
+                geometry: new ol.geom.Circle(coords, accuracy)
+            });
+
+            const accuracyStyle = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(76, 175, 80, 0.3)',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(76, 175, 80, 0.1)'
+                })
+            });
+
+            accuracyFeature.setStyle(accuracyStyle);
+            locationSource.addFeature(accuracyFeature);
+        }
+
+        function handleLocationError(error) {
+            console.error('Erro ao obter localização:', error);
+            const locationButton = document.getElementById('locationButton');
+            locationButton.classList.remove('loading');
             
-            locationLayer = new ol.layer.Vector({
-                source: locationSource,
-                style: function(feature) {
-                    if (feature.get('type') === 'location') {
-                        return new ol.style.Style
+            let errorMessage = 'Não foi possível obter sua localização. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage += 'Permissão negada. Por favor, permita o acesso à localização nas configurações do seu navegador.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += 'Informação de localização indisponível.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += 'Tempo esgotado ao tentar obter sua localização.';
+                    break;
+                default:
+                    errorMessage += 'Erro desconhecido.';
+            }
+            alert(errorMessage);
+        }
+
+        document.getElementById('locationButton').addEventListener('click', function() {
+            const button = this;
+            
+            if (button.classList.contains('active')) {
+                // Se já está ativo, remove a localização
+                if (locationFeature) {
+                    locationSource.removeFeature(locationFeature);
+                    locationFeature = null;
+                }
+                button.classList.remove('active');
+                return;
+            }
+
+            button.classList.add('loading');
+
+            if (!locationLayer) {
+                initLocationFeature();
+            }
+
+            if (navigator.geolocation) {
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                };
+
+                navigator.geolocation.getCurrentPosition(
+                    updateLocation,
+                    handleLocationError,
+                    options
+                );
+            } else {
+                alert('Geolocalização não é suportada pelo seu navegador.');
+                button.classList.remove('loading');
+            }
+        });
+        </script>
+
+        <script>
+        // Função para verificar se é dispositivo móvel
+        function isMobileDevice() {
+            return (window.innerWidth <= 768) || 
+                   (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+        }
+
+        // Modificar o evento de clique no mapa
+        map.on('click', function(evt) {
+            if (isMobileDevice()) {
+                return; // Não faz nada se for dispositivo móvel
+            }
+            
+            // Código existente do popup
+            var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+                return feature;
+            });
+
+            if (feature) {
+                var coordinates = feature.getGeometry().getCoordinates();
+                var properties = feature.getProperties();
+                
+                // Criar conteúdo do popup
+                var content = '<div class="popup-content">';
+                for (var prop in properties) {
+                    if (prop !== 'geometry') {
+                        content += '<p><strong>' + prop + ':</strong> ' + properties[prop] + '</p>';
+                    }
+                }
+                content += '</div>';
+
+                // Atualizar e mostrar popup
+                document.getElementById('popup-content').innerHTML = content;
+                popup.setPosition(coordinates);
+                popup.setVisible(true);
+            } else {
+                popup.setVisible(false);
+            }
+        });
+        </script>
+    </body>
+</html>
