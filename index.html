@@ -938,9 +938,9 @@
                 source: locationSource,
                 style: new ol.style.Style({
                     image: new ol.style.Circle({
-                        radius: 6,
+                        radius: 8,
                         fill: new ol.style.Fill({
-                            color: '#4CAF50'
+                            color: 'rgba(76, 175, 80, 0.7)'
                         }),
                         stroke: new ol.style.Stroke({
                             color: '#fff',
@@ -955,7 +955,14 @@
         }
 
         function updateLocation(position) {
-            const coords = ol.proj.fromLonLat([position.coords.longitude, position.coords.latitude]);
+            console.log('Posição recebida:', position); // Debug
+
+            const coords = ol.proj.fromLonLat([
+                position.coords.longitude,
+                position.coords.latitude
+            ]);
+
+            console.log('Coordenadas convertidas:', coords); // Debug
             
             // Remover feature anterior se existir
             if (locationFeature) {
@@ -970,7 +977,8 @@
             locationSource.addFeature(locationFeature);
 
             // Centralizar o mapa na localização
-            map.getView().animate({
+            const view = map.getView();
+            view.animate({
                 center: coords,
                 zoom: 15,
                 duration: 1000
@@ -980,13 +988,47 @@
             const locationButton = document.getElementById('locationButton');
             locationButton.classList.remove('loading');
             locationButton.classList.add('active');
+
+            // Adicionar círculo de precisão
+            const accuracy = position.coords.accuracy;
+            const accuracyFeature = new ol.Feature({
+                geometry: new ol.geom.Circle(coords, accuracy)
+            });
+
+            const accuracyStyle = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(76, 175, 80, 0.3)',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(76, 175, 80, 0.1)'
+                })
+            });
+
+            accuracyFeature.setStyle(accuracyStyle);
+            locationSource.addFeature(accuracyFeature);
         }
 
         function handleLocationError(error) {
             console.error('Erro ao obter localização:', error);
             const locationButton = document.getElementById('locationButton');
             locationButton.classList.remove('loading');
-            alert('Não foi possível obter sua localização. Verifique se o GPS está ativado e se você permitiu o acesso à localização.');
+            
+            let errorMessage = 'Não foi possível obter sua localização. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage += 'Permissão negada. Por favor, permita o acesso à localização nas configurações do seu navegador.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += 'Informação de localização indisponível.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += 'Tempo esgotado ao tentar obter sua localização.';
+                    break;
+                default:
+                    errorMessage += 'Erro desconhecido.';
+            }
+            alert(errorMessage);
         }
 
         document.getElementById('locationButton').addEventListener('click', function() {
@@ -1009,11 +1051,17 @@
             }
 
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(updateLocation, handleLocationError, {
+                const options = {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 10000,
                     maximumAge: 0
-                });
+                };
+
+                navigator.geolocation.getCurrentPosition(
+                    updateLocation,
+                    handleLocationError,
+                    options
+                );
             } else {
                 alert('Geolocalização não é suportada pelo seu navegador.');
                 button.classList.remove('loading');
