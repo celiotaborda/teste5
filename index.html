@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="./resources/ol.css">
+        <link rel="stylesheet" href="resources/fontawesome-all.min.css">
+        <link rel="stylesheet" href="./resources/ol-layerswitcher.css">
+        <link rel="stylesheet" href="./resources/qgis2web.css">
+        <style>
+        html, body {
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        .ol-control > * {
+            background-color: #f8f8f8!important;
+            color: #444444!important;
+            border-radius: 0px;
+        }
+        .ol-attribution a, .gcd-gl-input::placeholder, .search-layer-input-search::placeholder {
+            color: #444444!important;
+        }
+        .search-layer-input-search {
+            background-color: #f8f8f8!important;
+        }
+        .ol-control > *:focus, .ol-control >*:hover {
+            background-color: rgba(248, 248, 248, 0.7)!important;
+        } 
+        .ol-control {
+            background-color: rgba(255,255,255,.4) !important;
+            padding: 2px !important;
+        }
+
+        /* Novo estilo para o container principal */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Estilo para a caixa lateral */
+        .sidebar {
+            width: 280px;
+            background-color: #ffffff;
+            padding: 8px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .sidebar h2 {
+            color: #333;
+            margin: 8px 0 6px;
+            font-size: 14px;
+            font-weight: 600;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #4CAF50;
+        }
+
+        /* Estilos para a seção de camadas */
+        .layers-section {
+            margin-bottom: 30px;
+        }
+
+        .layers-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .layers-section li {
+            margin: 5px 0;
+            padding: 8px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .layers-section li:hover {
+            background: #f0f0f0;
+        }
+
+        .layers-section li.active {
+            background: #e8f5e9;
+            border-left: 3px solid #4CAF50;
+        }
+
+        .layers-section input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #4CAF50;
+        }
+
+        .layers-section label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Estilo para o container do mapa */
+        #map {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            background-color: #ffffff;
+            margin-left: 0;
+        }
+
+        /* Estilo para a caixa de seleção "Selecionar todas" */
+        .select-all-container {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
+
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Estilo para a legenda */
+        .legend-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            border-left: 2px solid #4CAF50;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 30px;
+        }
+
+        .legend-item h3 {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .legend-item p {
+            margin: 0 0 6px 0;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+            display: inline-block;
+            vertical-align: middle;
+            border-radius: 2px;
+        }
+
+        .legend-label {
+            font-size: 11px;
+            margin-bottom: 4px;
+            display: inline-block;
+            vertical-align: middle;
+            max-width: calc(100% - 24px);
+        }
+
+        /* Estilo para o scrollbar da sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .ndre-toggle {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
+
+        .ndre-toggle label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .ndre-toggle input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #4CAF50;
+        }
+
+        /* Estilo para o seletor de imagens */
+        .image-selector {
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .date-filter {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .date-filter label {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .date-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .date-select:hover {
+            border-color: #4CAF50;
+        }
+
+        .date-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        /* Estilos para o calendário */
+        .calendar {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 6px;
+            margin: 8px 0;
+            width: 280px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            padding: 0;
+            width: 280px;
+        }
+
+        .calendar-header button {
+            background: none;
+            border: none;
+            font-size: 11px;
+            color: #4CAF50;
+            cursor: pointer;
+            padding: 2px 0;
+            width: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #current-month {
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            flex: 1;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0;
+            margin: 3px 0;
+            width: 280px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            color: #666;
+            padding: 2px 0;
+            font-size: 10px;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0;
+            padding: 0;
+            width: 280px;
+        }
+
+        .calendar-day {
+            height: 20px;
+            width: auto;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: default;
+            user-select: none;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            color: #666;
+            margin: 0;
+            padding: 0;
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.has-image {
+            background: #e8f5e9;
+            border: 1px solid #4CAF50;
+            color: #1b5e20;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 1px;
+        }
+
+        .calendar-day.selected {
+            background: #4CAF50;
+            color: white;
+            border-color: #2E7D32;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .calendar-day.disabled {
+            color: #ccc;
+            background: #f0f0f0;
+            cursor: not-allowed;
+            border: none;
+        }
+
+        /* Estilo para o seletor de índices */
+        .index-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .index-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .index-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .index-select:hover {
+            border-color: #4CAF50;
+        }
+
+        .index-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        /* Estilo para as abas */
+        .tabs-container {
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: calc(33.33% - 5px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .tab-button:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .tab-button.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .ol-control button {
+            background-color: #4CAF50 !important;
+            color: #ffffff !important;
+        }
+
+        .ol-control button:hover {
+            background-color: #2E7D32 !important;
+        }
+
+        /* Estilo para o container do calendário */
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Estilo para os botões de índice */
+        .index-buttons {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .index-buttons-row {
+            display: flex;
+            gap: 4px;
+            justify-content: space-between;
+        }
+
+        .index-button {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1.5px solid #4CAF50;
+            background: #ffffff;
+            color: #4CAF50;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .index-button:hover {
+            background: #e8f5e9;
+        }
+
+        .index-button.active {
+            background: #4CAF50;
+            color: #ffffff;
+        }
+
+        /* Ajuste da legenda dinâmica */
+        .dynamic-legend {
+            margin: 3px 0;
+            padding: 3px;
+            background: #f8f8f8;
+            border-radius: 2px;
+            border-left: 1px solid #4CAF50;
+            width: calc(100% - 8px);
+        }
+
+        .dynamic-legend h3 {
+            margin: 0 0 1px 0;
+            font-size: 9px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .dynamic-legend-content {
+            font-size: 8px;
+            color: #555;
+            line-height: 1;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        .dynamic-legend-content p {
+            margin: 0;
+            padding: 0;
+        }
+
+        .dynamic-legend-content br {
+            display: none;
+        }
+
+        .dynamic-legend-content strong {
+            font-weight: 600;
+            color: #333;
+            margin-right: 2px;
+        }
+
+        /* Ajuste para compactar as informações em uma linha */
+        .dynamic-legend-content span {
+            display: inline-block;
+            margin-right: 3px;
+            max-width: 100%;
+        }
+
+        .dynamic-legend-content span::after {
+            content: "•";
+            color: #ccc;
+            margin: 0 2px;
+        }
+
+        .dynamic-legend-content span:last-child::after {
+            content: "";
+        }
+
+        /* Estilo para a legenda dinâmica */
+        .dynamic-legend {
+            margin-top: 25px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .dynamic-legend h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .dynamic-legend-content {
+            font-size: 12px;
+            color: #666;
+            line-height: 2.2;
+        }
+
+        .dynamic-legend-content p {
+            margin: 8px 0;
+            padding: 4px 0;
+        }
+
+        /* Estilo específico para o número do índice */
+        .index-value {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 0 4px;
+        }
+
+        /* Estilo para datas desabilitadas */
+        .calendar-day.disabled {
+            color: #ccc;
+            background: #f0f0f0;
+            cursor: not-allowed;
+            border: none;
+        }
+
+        .calendar1-section,
+        .calendar2-section {
+            flex: 1;
+        }
+
+        /* Mantém os estilos existentes do calendário original */
+        .calendar-container {
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            background-color: #f8f8f8;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #fff;
+        }
+
+        .calendar-day {
+            padding: 10px;
+            text-align: center;
+            cursor: default;
+        }
+
+        .calendar-day.has-image {
+            background-color: #e8f5e9;
+            cursor: pointer;
+        }
+
+        .calendar-day.selected {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Ajuste do espaçamento da seção de legenda */
+        .sidebar h2:not(:first-child) {
+            margin-top: 12px;
+        }
+
+        /* Ajuste do container principal */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Ajuste da sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: #ffffff;
+            padding: 8px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* Botão de menu mobile */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .menu-toggle:hover {
+            background: #45a049;
+        }
+
+        /* Media query para dispositivos móveis */
+        @media screen and (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 999;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            #map {
+                margin-left: 0;
+            }
+        }
+
+        /* Ajuste do container do mapa */
+        #map {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            background-color: #ffffff;
+            margin-left: 0;
+        }
+
+        /* Ajuste da legenda dinâmica */
+        .dynamic-legend {
+            margin: 3px 0;
+            padding: 3px;
+            background: #f8f8f8;
+            border-radius: 2px;
+            border-left: 1px solid #4CAF50;
+            width: calc(100% - 8px);
+        }
+
+        .dynamic-legend h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .dynamic-legend-content {
+            font-size: 12px;
+            color: #666;
+            line-height: 2.2;
+        }
+
+        .dynamic-legend-content p {
+            margin: 8px 0;
+            padding: 4px 0;
+        }
+
+        /* Ajuste das informações da imagem */
+        .image-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-line {
+            margin: 0;
+            line-height: 1.8;
+        }
+
+        /* Estilo para o botão de localização */
+        .location-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .location-button:hover {
+            background: #45a049;
+        }
+
+        .location-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .location-button.active {
+            background: #2E7D32;
+        }
+
+        .location-button.loading {
+            background: #666;
+            cursor: wait;
+        }
+        </style>
+        <title>Índices de Vegetação</title>
+    </head>
+    <body>
+        <button class="menu-toggle" id="menuToggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <button class="location-button" id="locationButton" title="Mostrar minha localização">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+            </svg>
+        </button>
+        <div class="main-container">
+            <!-- Sidebar para a legenda -->
+            <div class="sidebar">
+                <h2>Seleção de Imagens</h2>
+                
+                <!-- Botões de índice -->
+                <div class="index-buttons">
+                    <div class="index-buttons-row">
+                        <button class="index-button active" data-index="NDRE">NDRE</button>
+                        <button class="index-button" data-index="NDVI">NDVI</button>
+                        <button class="index-button" data-index="GNDVI">GNDVI</button>
+                    </div>
+                    <div class="index-buttons-row">
+                        <button class="index-button" data-index="NDMI">NDMI</button>
+                        <button class="index-button" data-index="SAVI">SAVI</button>
+                        <button class="index-button" data-index="EVI">EVI</button>
+                    </div>
+                </div>
+
+                <!-- Calendário -->
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <button id="prev-month">&lt;</button>
+                        <span id="current-month">Setembro 2024</span>
+                        <button id="next-month">&gt;</button>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day-header">Dom</div>
+                        <div class="calendar-day-header">Seg</div>
+                        <div class="calendar-day-header">Ter</div>
+                        <div class="calendar-day-header">Qua</div>
+                        <div class="calendar-day-header">Qui</div>
+                        <div class="calendar-day-header">Sex</div>
+                        <div class="calendar-day-header">Sáb</div>
+                    </div>
+                    <div id="calendar-days" class="calendar-days"></div>
+                </div>
+
+                <h2>Legenda</h2>
+                <div id="map-legend"></div>
+
+                <!-- Legenda Dinâmica (Informações da Imagem) -->
+                <div class="dynamic-legend">
+                    <h3>Informações da Imagem</h3>
+                    <div id="dynamic-legend-content" class="dynamic-legend-content">
+                        Selecione uma data para ver as informações.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Container do mapa -->
+            <div id="map">
+                <div id="popup" class="ol-popup">
+                    <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+                    <div id="popup-content"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Scripts essenciais primeiro -->
+        <script src="resources/proj4.js"></script>
+        <script src="./resources/ol.js"></script>
+        <script src="./resources/ol-layerswitcher.js"></script>
+        <script src="./resources/Autolinker.min.js"></script>
+        
+        <!-- Scripts de configuração -->
+        <script src="resources/qgis2web_expressions.js"></script>
+        <script>proj4.defs('EPSG:31981','+proj=utm +zone=21 +south +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');</script>
+        
+        <!-- Camada do imóvel (deve ser carregada primeiro) -->
+        <script src="layers/IMOVELPRIMAVERAUTM_19.js"></script>
+        <script src="styles/IMOVELPRIMAVERAUTM_19_style.js"></script>
+        
+        <!-- Camadas e funcionalidades -->
+        <script src="layers/layers.js"></script>
+        <script src="./resources/functions.js"></script>
+        <script src="./resources/qgis2web.js"></script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializa o Calendário 1 (original)
+            initInterface(map);
+        });
+        </script>
+
+        <script>
+        // Adicionar funcionalidade de toggle do menu
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Fechar o menu ao clicar fora dele em dispositivos móveis
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const menuToggle = document.getElementById('menuToggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !menuToggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Funcionalidade de geolocalização
+        let locationFeature = null;
+        let locationSource = null;
+        let locationLayer = null;
+
+        function initLocationFeature() {
+            // Criar fonte e camada para a localização
+            locationSource = new ol.source.Vector();
+            locationLayer = new ol.layer.Vector({
+                source: locationSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 6,
+                        fill: new ol.style.Fill({
+                            color: '#4CAF50'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: '#fff',
+                            width: 2
+                        })
+                    })
+                })
+            });
+
+            // Adicionar a camada ao mapa
+            map.addLayer(locationLayer);
+        }
+
+        function updateLocation(position) {
+            const coords = ol.proj.fromLonLat([position.coords.longitude, position.coords.latitude]);
+            
+            // Remover feature anterior se existir
+            if (locationFeature) {
+                locationSource.removeFeature(locationFeature);
+            }
+
+            // Criar nova feature com a localização atual
+            locationFeature = new ol.Feature({
+                geometry: new ol.geom.Point(coords)
+            });
+
+            locationSource.addFeature(locationFeature);
+
+            // Centralizar o mapa na localização
+            map.getView().animate({
+                center: coords,
+                zoom: 15,
+                duration: 1000
+            });
+
+            // Atualizar estado do botão
+            const locationButton = document.getElementById('locationButton');
+            locationButton.classList.remove('loading');
+            locationButton.classList.add('active');
+        }
+
+        function handleLocationError(error) {
+            console.error('Erro ao obter localização:', error);
+            const locationButton = document.getElementById('locationButton');
+            locationButton.classList.remove('loading');
+            alert('Não foi possível obter sua localização. Verifique se o GPS está ativado e se você permitiu o acesso à localização.');
+        }
+
+        document.getElementById('locationButton').addEventListener('click', function() {
+            const button = this;
+            
+            if (button.classList.contains('active')) {
+                // Se já está ativo, remove a localização
+                if (locationFeature) {
+                    locationSource.removeFeature(locationFeature);
+                    locationFeature = null;
+                }
+                button.classList.remove('active');
+                return;
+            }
+
+            button.classList.add('loading');
+
+            if (!locationLayer) {
+                initLocationFeature();
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(updateLocation, handleLocationError, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            } else {
+                alert('Geolocalização não é suportada pelo seu navegador.');
+                button.classList.remove('loading');
+            }
+        });
+        </script>
+
+        <script>
+        // Função para verificar se é dispositivo móvel
+        function isMobileDevice() {
+            return (window.innerWidth <= 768) || 
+                   (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+        }
+
+        // Modificar o evento de clique no mapa
+        map.on('click', function(evt) {
+            if (isMobileDevice()) {
+                return; // Não faz nada se for dispositivo móvel
+            }
+            
+            // Código existente do popup
+            var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+                return feature;
+            });
+
+            if (feature) {
+                var coordinates = feature.getGeometry().getCoordinates();
+                var properties = feature.getProperties();
+                
+                // Criar conteúdo do popup
+                var content = '<div class="popup-content">';
+                for (var prop in properties) {
+                    if (prop !== 'geometry') {
+                        content += '<p><strong>' + prop + ':</strong> ' + properties[prop] + '</p>';
+                    }
+                }
+                content += '</div>';
+
+                // Atualizar e mostrar popup
+                document.getElementById('popup-content').innerHTML = content;
+                popup.setPosition(coordinates);
+                popup.setVisible(true);
+            } else {
+                popup.setVisible(false);
+            }
+        });
+        </script>
+    </body>
+</html>
